@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+
+  jion_db:
+    image: mariadb:10.3
+    env_file: jion/environment/jion_env
+
+  jion:
+    build: .    
+    image: jion:devel
+    restart: on-failure
+    container_name: jion_container
+    command: gunicorn -w 3 jion.wsgi:application -b :6500
+    env_file: jion/environment/jion_env
+    volumes:
+      - .:/app
+      - static_data:/app/static
+    ports:
+      - "6500:6500"
+    depends_on:
+      - jion_db
+
+volumes:
+  static_data:
