@@ -1,0 +1,6 @@
+MYSQL_DATABASE=db_name
+MYSQL_USER=db_user
+MYSQL_PASSWORD=db_pwd
+MYSQL_ROOT_PASSWORD=_db_root_pwd
+SECRET_KEY=_django_sct_key
+DJANGO_SETTINGS_MODULE=jion.settings.production
