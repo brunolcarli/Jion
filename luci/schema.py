@@ -1,8 +1,9 @@
 import logging
 import graphene
-from luci.models import Emotion
+from django.conf import settings
+from luci.models import Emotion, Quote
 
-    
+
 class EmotionType(graphene.ObjectType):
     reference = graphene.String()
     pleasantness = graphene.Float()
@@ -11,10 +12,19 @@ class EmotionType(graphene.ObjectType):
     aptitude = graphene.Float()
 
 
+class QuoteType(graphene.ObjectType):
+    id = graphene.ID()
+    reference = graphene.String()
+    quote = graphene.String()
+    author = graphene.String()
+    date = graphene.Date()
+
+
 class Query(object):
-    foo = graphene.String()
-    def resolve_foo(self, info, **kwargs):
-        return 'Ok'
+    version = graphene.String()
+
+    def resolve_version(self, info, **kwargs):
+        return settings.VERSION
 
     emotions = graphene.List(
         EmotionType,
@@ -27,6 +37,15 @@ class Query(object):
     def resolve_emotions(self, info, **kwargs):
         return Emotion.objects.filter(reference=kwargs['reference'])
 
+    quotes = graphene.List(
+        QuoteType,
+        reference=graphene.String(required=True),
+        author=graphene.String(),
+        date=graphene.Date()
+    )
+
+    def resolve_quotes(self, info, **kwargs):
+        return Quote.objects.filter(**kwargs)
 
 class EmotionUpdate(graphene.relay.ClientIDMutation):
     """
@@ -54,5 +73,25 @@ class EmotionUpdate(graphene.relay.ClientIDMutation):
         return EmotionUpdate(emotion)
 
 
+class CreateQuote(graphene.relay.ClientIDMutation):
+    quote = graphene.Field(QuoteType)
+
+    class Input:
+        quote = graphene.String(required=True)
+        author = graphene.String(required=True)
+        reference = graphene.String(required=True)
+
+    def mutate_and_get_payload(self, info, **kwargs):
+        quote = Quote.objects.create(
+            quote=kwargs['quote'],
+            author=kwargs['author'],
+            reference=kwargs['reference']
+        )
+        quote.save()
+
+        return CreateQuote(quote)
+
+
 class Mutation:
     emotion_update = EmotionUpdate.Field()
+    create_quote = CreateQuote.Field()
