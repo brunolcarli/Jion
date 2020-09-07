@@ -4,3 +4,6 @@ run:
 migrate:
 	python manage.py makemigrations --settings=jion.settings.development
 	python manage.py migrate --settings=jion.settings.development
+
+shell:
+	python manage.py shell --settings=jion.settings.development
