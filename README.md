@@ -22,4 +22,50 @@
 
 <hr />
 
-Under development
+[Jion](https://pt.wikipedia.org/wiki/Jion) é uma API Graphql responsável pelo backend do chatbot de Inteligência Artificial [Luci](https://github.com/brunolcarli/Luci), contendo dados de armazenamento permanente, ou ainda, em outras palávras, sua memória de longo prazo.
+
+## Rodando localmente
+
+Há um arquivo *template* para definição das variáveis de ambiente em: `jion/environment/template`, crie um novo arquivo contendo suas variáveis e exporte-as:
+
+```
+$ source jion/environment/seu_arquivo
+```
+
+Você deve estar em um ambiente virtual python, onde poderá instalar as dependências:
+
+```
+$ make install
+```
+
+A API então poderá ser executada e estará disponível por padrão na porta `6500`
+
+```
+$ make run
+```
+
+## Docker
+
+A partir do template disponibilizado em `jion/environment/template` você deverá criar um novo arquivo no mesmo diretório chamado `jion_env` contendo seus valores para as variáveis, resultando no arquivo `jion/environment/jion_env`.
+
+
+Instale o docker-compose. Isso pdoe ser feito através do pip ou do makefile
+
+pip
+```
+$ pip3 install docker-compose
+```
+
+make
+```
+$ make install
+```
+
+
+Execute o *build* e suba o container com os comandos:
+
+```
+$ docker-compose build
+$ docker-compose up
+```
+
