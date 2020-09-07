@@ -12,7 +12,7 @@
 
 <div align="center">
 
-> [![Version badge](https://img.shields.io/badge/version-0.0.1-silver.svg)]()
+> [![Version badge](https://img.shields.io/badge/version-0.0.2-silver.svg)]()
 
 >[![GraphQl Badge](https://badgen.net/badge/icon/graphql/pink?icon=graphql&label)]()
 [![Docs Link](https://badgen.net/badge/docs/github_wiki?icon=github)](https://github.com/brunolcarli/Jion/wiki)
