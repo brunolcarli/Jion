@@ -14,3 +14,10 @@ class Quote(models.Model):
     quote = models.TextField(null=False, blank=False)
     author = models.CharField(max_length=100, null=False, blank=False)
     date = models.DateField(auto_now_add=True)
+
+
+class User(models.Model):
+    reference = models.CharField(max_length=100, null=False, blank=False)
+    name = models.CharField(max_length=100)
+    friendshipness = models.FloatField(default=0.0)
+    emotion_resume = models.ForeignKey(Emotion, on_delete=models.CASCADE, null=True)
