@@ -160,6 +160,7 @@ class UpdateUser(graphene.relay.ClientIDMutation):
             user.emotion_resume.attention += emotion_resume.get('attention', 0)
             user.emotion_resume.sensitivity += emotion_resume.get('sensitivity', 0)
             user.emotion_resume.aptitude += emotion_resume.get('aptitude', 0)
+            user.emotion_resume.save()
 
         user.save()
 
