@@ -1,4 +1,5 @@
 import logging
+from base64 import b64decode
 import graphene
 from django.conf import settings
 from luci.models import Emotion, Quote, User
@@ -33,9 +34,57 @@ class Query:
     def resolve_version(self, info, **kwargs):
         return settings.VERSION
 
-    users = graphene.List(UserType)
+    users = graphene.List(
+        UserType,
+        reference=graphene.String(
+            description='Filters by reference'
+        ),
+        friendshipness__lte=graphene.Float(
+            description='Affection level less or equal than inputed value'
+        ),
+        friendshipness__gte=graphene.Float(
+            description='Affection level greather or equal than inputed value'
+        ),
+        user_id=graphene.String(),
+        server_id=graphene.String()
+    )
+
     def resolve_users(self, info, **kwargs):
-        return User.objects.all()
+        user_id = kwargs.pop('user_id', None)
+        server_id = kwargs.pop('server_id', None)
+        users = User.objects.filter(**kwargs)
+
+        if not user_id and not server_id:
+            return users
+
+        if user_id and not server_id:
+            filtered = []
+            for user in users:
+                key = b64decode(user.reference.encode('utf-8')).decode('utf-8')
+                _, uid = key.split(':')
+                if user_id == uid:
+                    filtered.append(user)
+            return filtered
+
+        if server_id and not user_id:
+            filtered = []
+            for user in users:
+                key = b64decode(user.reference.encode('utf-8')).decode('utf-8')
+                sid, _ = key.split(':')
+                if server_id == sid:
+                    filtered.append(user)
+            return filtered
+    
+        if server_id and user_id:
+            filtered = []
+            for user in users:
+                key = b64decode(user.reference.encode('utf-8')).decode('utf-8')
+                sid, uid = key.split(':')
+                if server_id == sid and user_id == uid:
+                    filtered.append(user)
+            return filtered
+
+        return users
 
     emotions = graphene.List(
         EmotionType,
