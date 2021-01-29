@@ -21,3 +21,11 @@ class User(models.Model):
     name = models.CharField(max_length=100)
     friendshipness = models.FloatField(default=0.0)
     emotion_resume = models.ForeignKey(Emotion, on_delete=models.CASCADE, null=True)
+
+
+class Message(models.Model):
+    global_intention = models.CharField(max_length=25)
+    specific_intention = models.CharField(max_length=50)
+    text = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message_datetime = models.DateTimeField(auto_now_add=True)

@@ -2,7 +2,14 @@ import logging
 from base64 import b64decode
 import graphene
 from django.conf import settings
-from luci.models import Emotion, Quote, User
+from luci.models import Emotion, Quote, User, Message
+
+
+class MessageType(graphene.ObjectType):
+    global_intention = graphene.String()
+    specific_intention = graphene.String()
+    text = graphene.String()
+    message_datetime = graphene.DateTime()
 
 
 class UserType(graphene.ObjectType):
@@ -10,7 +17,10 @@ class UserType(graphene.ObjectType):
     name = graphene.String()
     friendshipness = graphene.Float()
     emotion_resume = graphene.Field('luci.schema.EmotionType')
+    messages = graphene.List(MessageType)
 
+    def resolve_messages(self, info, **kwargs):
+        return self.message_set.all()
 
 class EmotionType(graphene.ObjectType):
     reference = graphene.String()
@@ -168,6 +178,12 @@ class CreateQuote(graphene.relay.ClientIDMutation):
         return CreateQuote(quote)
 
 
+class MessageInput(graphene.InputObjectType):
+    global_intention = graphene.String(required=True)
+    specific_intention = graphene.String(required=True)
+    text = graphene.String(required=True)
+
+
 class UpdateUser(graphene.relay.ClientIDMutation):
     user = graphene.Field(UserType)
 
@@ -187,6 +203,7 @@ class UpdateUser(graphene.relay.ClientIDMutation):
             EmotionInputs,
             description='User emotional data',
         )
+        message = graphene.Argument(MessageInput)
 
     def mutate_and_get_payload(self, info, **kwargs):
         emotion_resume = kwargs.get('emotion_resume')
@@ -210,6 +227,15 @@ class UpdateUser(graphene.relay.ClientIDMutation):
             user.emotion_resume.sensitivity += emotion_resume.get('sensitivity', 0)
             user.emotion_resume.aptitude += emotion_resume.get('aptitude', 0)
             user.emotion_resume.save()
+
+        if kwargs.get('message'):
+            message = Message.objects.create(
+                global_intention=kwargs['message'].get('global_intention', ''),
+                specific_intention=kwargs['message'].get('specific_intention', ''),
+                text=kwargs['message'].get('text'),
+                user=user
+            )
+            message.save()
 
         user.save()
 
