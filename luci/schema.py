@@ -10,6 +10,10 @@ class MessageType(graphene.ObjectType):
     specific_intention = graphene.String()
     text = graphene.String()
     message_datetime = graphene.DateTime()
+    possible_responses = graphene.List(lambda: MessageType)
+
+    def resolve_possible_responses(self, info, **kwargs):
+        return self.possible_responses.all()
 
 
 class UserType(graphene.ObjectType):
@@ -116,6 +120,14 @@ class Query:
 
     def resolve_quotes(self, info, **kwargs):
         return Quote.objects.filter(**kwargs)
+
+    messages = graphene.List(
+        MessageType,
+        text__icontains=graphene.String()
+    )
+
+    def resolve_messages(self, info, **kwargs):
+        return Message.objects.filter(**kwargs)
 
 
 class EmotionInputs(graphene.InputObjectType):
@@ -242,7 +254,35 @@ class UpdateUser(graphene.relay.ClientIDMutation):
         return UpdateUser(user)
 
 
+class AssignResponse(graphene.relay.ClientIDMutation):
+    messages = graphene.List(MessageType).Field()
+
+    class Input:
+        text = graphene.String(required=True)
+        response = graphene.Argument(
+            MessageInput,    
+            required=True
+        )
+
+    def mutate_and_get_payload(self, info, **kwargs):
+        messages = Message.objects.filter(text__icontains=kwargs['text'])
+
+        response = Message.objects.create(
+            global_intention=kwargs['response'].get('global_intention', ''),
+            specific_intention=kwargs['response'].get('specific_intention', ''),
+            text=kwargs['response'].get('text'),
+        )
+        response.save()
+
+        for message in messages:
+            message.possible_responses.add(response)
+            message.save()
+
+        return AssignResponse(messages)
+
+
 class Mutation:
     emotion_update = EmotionUpdate.Field()
     create_quote = CreateQuote.Field()
     update_user = UpdateUser.Field()
+    assign_response = AssignResponse.Field()
