@@ -27,5 +27,6 @@ class Message(models.Model):
     global_intention = models.CharField(max_length=25)
     specific_intention = models.CharField(max_length=50)
     text = models.TextField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     message_datetime = models.DateTimeField(auto_now_add=True)
+    possible_responses = models.ManyToManyField("self")
