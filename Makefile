@@ -7,3 +7,6 @@ migrate:
 
 shell:
 	python manage.py shell --settings=jion.settings.development
+
+install:
+	pip install -r jion/requirements/development.txt
