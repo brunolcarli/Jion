@@ -11,6 +11,10 @@ class MessageType(graphene.ObjectType):
     text = graphene.String()
     message_datetime = graphene.DateTime()
     possible_responses = graphene.List(lambda: MessageType)
+    author = graphene.String()
+
+    def resolve_author(self, info, **kwargs):
+        return self.user.name if self.user else None
 
     def resolve_possible_responses(self, info, **kwargs):
         return self.possible_responses.all()
@@ -60,7 +64,7 @@ class Query:
             description='Affection level greather or equal than inputed value'
         ),
         user_id=graphene.String(),
-        server_id=graphene.String()
+        server_id=graphene.String(),
     )
 
     def resolve_users(self, info, **kwargs):
@@ -123,7 +127,11 @@ class Query:
 
     messages = graphene.List(
         MessageType,
-        text__icontains=graphene.String()
+        text__icontains=graphene.String(),
+        text__contains=graphene.String(),
+        global_intention=graphene.String(),
+        specific_intention=graphene.String(),
+        user__name=graphene.String(),
     )
 
     def resolve_messages(self, info, **kwargs):
