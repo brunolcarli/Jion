@@ -37,3 +37,12 @@ class Message(models.Model):
 
     class Meta:
         unique_together = ['reference', 'text']
+
+
+class CustomConfig(models.Model):
+    reference = models.CharField(max_length=100, null=False, blank=False)
+    server_name = models.CharField(max_length=100, null=True, blank=True)
+    main_channel = models.CharField(max_length=35, null=True, blank=True)
+    allow_auto_send_messages = models.BooleanField(default=True)
+    filter_offensive_messages = models.BooleanField(default=True)
+    allow_learning_from_chat = models.BooleanField(default=True)

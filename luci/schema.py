@@ -2,8 +2,17 @@ import logging
 from base64 import b64decode
 import graphene
 from django.conf import settings
-from luci.models import Emotion, Quote, User, Message
+from luci.models import Emotion, Quote, User, Message, CustomConfig
 from luci.util import CompressedString
+
+
+class CustomConfigType(graphene.ObjectType):
+    reference = graphene.String()
+    server_name = graphene.String()
+    main_channel = graphene.String()
+    allow_auto_send_messages = graphene.Boolean()
+    filter_offensive_messages = graphene.Boolean()
+    allow_learning_from_chat = graphene.Boolean()
 
 
 class MessageType(graphene.ObjectType):
@@ -146,6 +155,15 @@ class Query:
 
     def resolve_messages(self, info, **kwargs):
         return Message.objects.filter(**kwargs)
+
+    custom_config = graphene.Field(
+        CustomConfigType,
+        reference=graphene.String(required=True)
+    )
+
+    def resolve_custom_config(self, info, **kwargs):
+        return CustomConfig.objects.get(reference=kwargs['reference'])
+
 
 
 class EmotionInputs(graphene.InputObjectType):
@@ -300,8 +318,43 @@ class AssignResponse(graphene.relay.ClientIDMutation):
         return AssignResponse(messages)
 
 
+class UpdateCustomConfig(graphene.relay.ClientIDMutation):
+    custom_config = graphene.Field(CustomConfigType)
+
+    class Input:
+        reference = graphene.String(required=True)
+        server_name = graphene.String()
+        main_channel = graphene.String()
+        allow_auto_send_messages = graphene.Boolean()
+        filter_offensive_messages = graphene.Boolean()
+        allow_learning_from_chat = graphene.Boolean()
+
+    def mutate_and_get_payload(self, info, **kwargs):
+        custom_config, _ = CustomConfig.objects.get_or_create(
+            reference=kwargs['reference']
+        )
+        allow_auto_send = kwargs.get('allow_auto_send_messages')
+        filter_offensive_messages = kwargs.get('filter_offensive_messages')
+        allow_learning_from_chat = kwargs.get('allow_learning_from_chat')
+
+        if kwargs.get('server_name'):
+            custom_config.server_name = kwargs['server_name']
+        if kwargs.get('main_channel'):
+            custom_config.main_channel = kwargs['main_channel']
+        if allow_auto_send is True or allow_auto_send is False:
+            custom_config.allow_auto_send_messages = allow_auto_send
+        if allow_learning_from_chat is True or allow_learning_from_chat is False:
+            custom_config.allow_learning_from_chat = allow_learning_from_chat
+        if filter_offensive_messages is True or filter_offensive_messages is False:
+            custom_config.filter_offensive_messages = filter_offensive_messages
+
+        custom_config.save()
+        return UpdateCustomConfig(custom_config)
+
+
 class Mutation:
     emotion_update = EmotionUpdate.Field()
     create_quote = CreateQuote.Field()
     update_user = UpdateUser.Field()
     assign_response = AssignResponse.Field()
+    update_custom_config = UpdateCustomConfig.Field()
