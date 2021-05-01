@@ -7,6 +7,7 @@ from luci.util import CompressedString
 
 
 class MessageType(graphene.ObjectType):
+    reference = graphene.String()
     global_intention = graphene.String()
     specific_intention = graphene.String()
     text = graphene.String()
@@ -140,6 +141,7 @@ class Query:
         global_intention=graphene.String(),
         specific_intention=graphene.String(),
         user__name=graphene.String(),
+        reference=graphene.String()
     )
 
     def resolve_messages(self, info, **kwargs):
@@ -261,7 +263,8 @@ class UpdateUser(graphene.relay.ClientIDMutation):
                 global_intention=kwargs['message'].get('global_intention', ''),
                 specific_intention=kwargs['message'].get('specific_intention', ''),
                 text=CompressedString(kwargs['message'].get('text')).bit_string,
-                user=user
+                user=user,
+                reference=kwargs['reference']
             )
             message.save()
 
