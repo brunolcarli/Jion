@@ -11,9 +11,12 @@ class Emotion(models.Model):
 
 class Quote(models.Model):
     reference = models.CharField(max_length=100, null=False, blank=False)
-    quote = models.TextField(null=False, blank=False)
+    quote = models.BinaryField(null=False)
     author = models.CharField(max_length=100, null=False, blank=False)
     date = models.DateField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['reference', 'quote']
 
 
 class User(models.Model):
@@ -24,9 +27,13 @@ class User(models.Model):
 
 
 class Message(models.Model):
+    reference = models.CharField(max_length=100, null=False, blank=False)
     global_intention = models.CharField(max_length=25)
     specific_intention = models.CharField(max_length=50)
-    text = models.TextField()
+    text = models.BinaryField(null=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     message_datetime = models.DateTimeField(auto_now_add=True)
     possible_responses = models.ManyToManyField("self")
+
+    class Meta:
+        unique_together = ['reference', 'text']

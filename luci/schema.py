@@ -3,6 +3,7 @@ from base64 import b64decode
 import graphene
 from django.conf import settings
 from luci.models import Emotion, Quote, User, Message
+from luci.util import CompressedString
 
 
 class MessageType(graphene.ObjectType):
@@ -12,6 +13,9 @@ class MessageType(graphene.ObjectType):
     message_datetime = graphene.DateTime()
     possible_responses = graphene.List(lambda: MessageType)
     author = graphene.String()
+
+    def resolve_text(self, info, **kwargs):
+        return CompressedString.decompress_bytes(self.text)
 
     def resolve_author(self, info, **kwargs):
         return self.user.name if self.user else None
@@ -30,6 +34,7 @@ class UserType(graphene.ObjectType):
     def resolve_messages(self, info, **kwargs):
         return self.message_set.all()
 
+
 class EmotionType(graphene.ObjectType):
     reference = graphene.String()
     pleasantness = graphene.Float()
@@ -44,6 +49,9 @@ class QuoteType(graphene.ObjectType):
     quote = graphene.String()
     author = graphene.String()
     date = graphene.Date()
+
+    def resolve_quote(self, info, **kwargs):
+        return CompressedString.decompress_bytes(self.quote)
 
 
 class Query:
@@ -189,7 +197,7 @@ class CreateQuote(graphene.relay.ClientIDMutation):
 
     def mutate_and_get_payload(self, info, **kwargs):
         quote = Quote.objects.create(
-            quote=kwargs['quote'],
+            quote=CompressedString(kwargs['quote']).bit_string,
             author=kwargs['author'],
             reference=kwargs['reference']
         )
@@ -223,7 +231,7 @@ class UpdateUser(graphene.relay.ClientIDMutation):
             EmotionInputs,
             description='User emotional data',
         )
-        message = graphene.Argument(MessageInput)
+        message = graphene.Argument(MessageInput, required=True)
 
     def mutate_and_get_payload(self, info, **kwargs):
         emotion_resume = kwargs.get('emotion_resume')
@@ -252,7 +260,7 @@ class UpdateUser(graphene.relay.ClientIDMutation):
             message = Message.objects.create(
                 global_intention=kwargs['message'].get('global_intention', ''),
                 specific_intention=kwargs['message'].get('specific_intention', ''),
-                text=kwargs['message'].get('text'),
+                text=CompressedString(kwargs['message'].get('text')).bit_string,
                 user=user
             )
             message.save()
@@ -278,7 +286,7 @@ class AssignResponse(graphene.relay.ClientIDMutation):
         response = Message.objects.create(
             global_intention=kwargs['response'].get('global_intention', ''),
             specific_intention=kwargs['response'].get('specific_intention', ''),
-            text=kwargs['response'].get('text'),
+            text=CompressedString(kwargs['response']['text']).bit_string,
         )
         response.save()
 
