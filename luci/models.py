@@ -15,9 +15,6 @@ class Quote(models.Model):
     author = models.CharField(max_length=100, null=False, blank=False)
     date = models.DateField(auto_now_add=True)
 
-    class Meta:
-        unique_together = ['reference', 'quote']
-
 
 class User(models.Model):
     reference = models.CharField(max_length=100, null=False, blank=False)
