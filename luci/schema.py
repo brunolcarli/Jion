@@ -2,16 +2,30 @@ import logging
 from base64 import b64decode
 import graphene
 from django.conf import settings
-from luci.models import Emotion, Quote, User, Message
+from luci.models import Emotion, Quote, User, Message, CustomConfig
+from luci.util import CompressedString
+
+
+class CustomConfigType(graphene.ObjectType):
+    reference = graphene.String()
+    server_name = graphene.String()
+    main_channel = graphene.String()
+    allow_auto_send_messages = graphene.Boolean()
+    filter_offensive_messages = graphene.Boolean()
+    allow_learning_from_chat = graphene.Boolean()
 
 
 class MessageType(graphene.ObjectType):
+    reference = graphene.String()
     global_intention = graphene.String()
     specific_intention = graphene.String()
     text = graphene.String()
     message_datetime = graphene.DateTime()
     possible_responses = graphene.List(lambda: MessageType)
     author = graphene.String()
+
+    def resolve_text(self, info, **kwargs):
+        return CompressedString.decompress_bytes(self.text)
 
     def resolve_author(self, info, **kwargs):
         return self.user.name if self.user else None
@@ -30,6 +44,7 @@ class UserType(graphene.ObjectType):
     def resolve_messages(self, info, **kwargs):
         return self.message_set.all()
 
+
 class EmotionType(graphene.ObjectType):
     reference = graphene.String()
     pleasantness = graphene.Float()
@@ -44,6 +59,9 @@ class QuoteType(graphene.ObjectType):
     quote = graphene.String()
     author = graphene.String()
     date = graphene.Date()
+
+    def resolve_quote(self, info, **kwargs):
+        return CompressedString.decompress_bytes(self.quote)
 
 
 class Query:
@@ -132,10 +150,20 @@ class Query:
         global_intention=graphene.String(),
         specific_intention=graphene.String(),
         user__name=graphene.String(),
+        reference=graphene.String()
     )
 
     def resolve_messages(self, info, **kwargs):
         return Message.objects.filter(**kwargs)
+
+    custom_config = graphene.Field(
+        CustomConfigType,
+        reference=graphene.String(required=True)
+    )
+
+    def resolve_custom_config(self, info, **kwargs):
+        return CustomConfig.objects.get(reference=kwargs['reference'])
+
 
 
 class EmotionInputs(graphene.InputObjectType):
@@ -189,7 +217,7 @@ class CreateQuote(graphene.relay.ClientIDMutation):
 
     def mutate_and_get_payload(self, info, **kwargs):
         quote = Quote.objects.create(
-            quote=kwargs['quote'],
+            quote=CompressedString(kwargs['quote']).bit_string,
             author=kwargs['author'],
             reference=kwargs['reference']
         )
@@ -223,7 +251,7 @@ class UpdateUser(graphene.relay.ClientIDMutation):
             EmotionInputs,
             description='User emotional data',
         )
-        message = graphene.Argument(MessageInput)
+        message = graphene.Argument(MessageInput, required=True)
 
     def mutate_and_get_payload(self, info, **kwargs):
         emotion_resume = kwargs.get('emotion_resume')
@@ -252,8 +280,9 @@ class UpdateUser(graphene.relay.ClientIDMutation):
             message = Message.objects.create(
                 global_intention=kwargs['message'].get('global_intention', ''),
                 specific_intention=kwargs['message'].get('specific_intention', ''),
-                text=kwargs['message'].get('text'),
-                user=user
+                text=CompressedString(kwargs['message'].get('text')).bit_string,
+                user=user,
+                reference=kwargs['reference']
             )
             message.save()
 
@@ -278,7 +307,7 @@ class AssignResponse(graphene.relay.ClientIDMutation):
         response = Message.objects.create(
             global_intention=kwargs['response'].get('global_intention', ''),
             specific_intention=kwargs['response'].get('specific_intention', ''),
-            text=kwargs['response'].get('text'),
+            text=CompressedString(kwargs['response']['text']).bit_string,
         )
         response.save()
 
@@ -289,8 +318,43 @@ class AssignResponse(graphene.relay.ClientIDMutation):
         return AssignResponse(messages)
 
 
+class UpdateCustomConfig(graphene.relay.ClientIDMutation):
+    custom_config = graphene.Field(CustomConfigType)
+
+    class Input:
+        reference = graphene.String(required=True)
+        server_name = graphene.String()
+        main_channel = graphene.String()
+        allow_auto_send_messages = graphene.Boolean()
+        filter_offensive_messages = graphene.Boolean()
+        allow_learning_from_chat = graphene.Boolean()
+
+    def mutate_and_get_payload(self, info, **kwargs):
+        custom_config, _ = CustomConfig.objects.get_or_create(
+            reference=kwargs['reference']
+        )
+        allow_auto_send = kwargs.get('allow_auto_send_messages')
+        filter_offensive_messages = kwargs.get('filter_offensive_messages')
+        allow_learning_from_chat = kwargs.get('allow_learning_from_chat')
+
+        if kwargs.get('server_name'):
+            custom_config.server_name = kwargs['server_name']
+        if kwargs.get('main_channel'):
+            custom_config.main_channel = kwargs['main_channel']
+        if allow_auto_send is True or allow_auto_send is False:
+            custom_config.allow_auto_send_messages = allow_auto_send
+        if allow_learning_from_chat is True or allow_learning_from_chat is False:
+            custom_config.allow_learning_from_chat = allow_learning_from_chat
+        if filter_offensive_messages is True or filter_offensive_messages is False:
+            custom_config.filter_offensive_messages = filter_offensive_messages
+
+        custom_config.save()
+        return UpdateCustomConfig(custom_config)
+
+
 class Mutation:
     emotion_update = EmotionUpdate.Field()
     create_quote = CreateQuote.Field()
     update_user = UpdateUser.Field()
     assign_response = AssignResponse.Field()
+    update_custom_config = UpdateCustomConfig.Field()

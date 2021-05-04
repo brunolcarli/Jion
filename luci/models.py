@@ -11,7 +11,7 @@ class Emotion(models.Model):
 
 class Quote(models.Model):
     reference = models.CharField(max_length=100, null=False, blank=False)
-    quote = models.TextField(null=False, blank=False)
+    quote = models.BinaryField(null=False)
     author = models.CharField(max_length=100, null=False, blank=False)
     date = models.DateField(auto_now_add=True)
 
@@ -24,9 +24,22 @@ class User(models.Model):
 
 
 class Message(models.Model):
+    reference = models.CharField(max_length=100, null=False, blank=False)
     global_intention = models.CharField(max_length=25)
     specific_intention = models.CharField(max_length=50)
-    text = models.TextField()
+    text = models.BinaryField(null=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     message_datetime = models.DateTimeField(auto_now_add=True)
     possible_responses = models.ManyToManyField("self")
+
+    class Meta:
+        unique_together = ['reference', 'text']
+
+
+class CustomConfig(models.Model):
+    reference = models.CharField(max_length=100, null=False, blank=False)
+    server_name = models.CharField(max_length=100, null=True, blank=True)
+    main_channel = models.CharField(max_length=35, null=True, blank=True)
+    allow_auto_send_messages = models.BooleanField(default=True)
+    filter_offensive_messages = models.BooleanField(default=True)
+    allow_learning_from_chat = models.BooleanField(default=True)
