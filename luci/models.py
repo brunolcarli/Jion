@@ -11,7 +11,7 @@ class Emotion(models.Model):
 
 class Quote(models.Model):
     reference = models.CharField(max_length=100, null=False, blank=False)
-    quote = models.BinaryField(null=False)
+    quote = models.BinaryField(null=False, max_length=1000)
     author = models.CharField(max_length=100, null=False, blank=False)
     date = models.DateField(auto_now_add=True)
 
