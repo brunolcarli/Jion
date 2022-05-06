@@ -1,3 +1,4 @@
+from operator import length_hint
 from django.db import models
 
 
@@ -43,3 +44,14 @@ class CustomConfig(models.Model):
     allow_auto_send_messages = models.BooleanField(default=True)
     filter_offensive_messages = models.BooleanField(default=True)
     allow_learning_from_chat = models.BooleanField(default=True)
+
+
+class Word(models.Model):
+    """ Store known words learned by Luci """
+    token = models.CharField(max_length=100, unique=True, null=False, blank=False)
+    language = models.CharField(max_length=20, null=True, blank=True)
+    pos_tag = models.CharField(max_length=10, null=True, blank=True)
+    lemma = models.CharField(max_length=100, null=True, blank=True)
+    entity = models.CharField(max_length=10, null=True, blank=True)
+    polarity = models.FloatField(null=True)
+    length = models.IntegerField()

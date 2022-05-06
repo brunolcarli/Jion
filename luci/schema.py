@@ -2,8 +2,18 @@ import logging
 from base64 import b64decode
 import graphene
 from django.conf import settings
-from luci.models import Emotion, Quote, User, Message, CustomConfig
+from luci.models import Emotion, Quote, User, Message, CustomConfig, Word
 from luci.util import CompressedString
+
+
+class WordType(graphene.ObjectType):
+    token = graphene.String()
+    language = graphene.String()
+    pos_tag = graphene.String()
+    lemma = graphene.String()
+    entity = graphene.String()
+    polarity = graphene.Float()
+    length = graphene.Int()
 
 
 class CustomConfigType(graphene.ObjectType):
@@ -164,6 +174,10 @@ class Query:
     def resolve_custom_config(self, info, **kwargs):
         return CustomConfig.objects.get(reference=kwargs['reference'])
 
+    words = graphene.List(WordType)
+
+    def resolve_words(self, info, **kwargs):
+        return Word.objects.filter(**kwargs)
 
 
 class EmotionInputs(graphene.InputObjectType):
