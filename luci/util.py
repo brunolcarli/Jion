@@ -82,9 +82,15 @@ def populate_word_table():
                 words.add(token)
     
     print(f'Identified {len(words)} words!')
-    for word in list(words):
-        obj, is_new = Word.objects.get_or_create(token=word, length=len(word))
-        if is_new:
-            obj.save()
+    creations = 0
+    errors = 0
+    for word in list(words):    
+        try:
+            obj, is_new = Word.objects.get_or_create(token=word, length=len(word))
+            if is_new:
+                obj.save()
+                creations += 1
+        except:
+            errors += 1
 
-    print('Done!')
+    print(f'Done! Created {creations} new tokens with {errors} errors.')
