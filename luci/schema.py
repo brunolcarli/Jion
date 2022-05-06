@@ -1,5 +1,6 @@
 import logging
 from base64 import b64decode
+from operator import length_hint
 import graphene
 from django.conf import settings
 from luci.models import Emotion, Quote, User, Message, CustomConfig, Word
@@ -174,7 +175,13 @@ class Query:
     def resolve_custom_config(self, info, **kwargs):
         return CustomConfig.objects.get(reference=kwargs['reference'])
 
-    words = graphene.List(WordType)
+    words = graphene.List(
+        WordType,
+        token__icontains=graphene.String(),
+        length=graphene.Int(),
+        length__lte=graphene.Int(),
+        length__gte=graphene.Int()
+    )
 
     def resolve_words(self, info, **kwargs):
         return Word.objects.filter(**kwargs)
