@@ -31,7 +31,7 @@ class MessageType(graphene.ObjectType):
     specific_intention = graphene.String()
     text = graphene.String()
     message_datetime = graphene.DateTime()
-    possible_responses = graphene.List()
+    possible_responses = graphene.List(lambda: MessageType)
     author = graphene.String()
 
     def resolve_text(self, info, **kwargs):
