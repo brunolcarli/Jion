@@ -179,7 +179,9 @@ class Query:
         token__icontains=graphene.String(),
         length=graphene.Int(),
         length__lte=graphene.Int(),
-        length__gte=graphene.Int()
+        length__gte=graphene.Int(),
+        token__startswith=graphene.String(),
+        token__endswith=graphene.String()
     )
 
     def resolve_words(self, info, **kwargs):
