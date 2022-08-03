@@ -179,7 +179,9 @@ class Query:
         token__icontains=graphene.String(),
         length=graphene.Int(),
         length__lte=graphene.Int(),
-        length__gte=graphene.Int()
+        length__gte=graphene.Int(),
+        token__startswith=graphene.String(),
+        token__endswith=graphene.String()
     )
 
     def resolve_words(self, info, **kwargs):
@@ -215,11 +217,6 @@ class EmotionUpdate(graphene.relay.ClientIDMutation):
             current = emotion.__getattribute__(key)
 
             update = current + value
-            if update > 9.99:
-                update = 9.99
-
-            elif update < -9.99:
-                update = -9.99
 
             emotion.__setattr__(key, update)
         emotion.save()
