@@ -217,11 +217,6 @@ class EmotionUpdate(graphene.relay.ClientIDMutation):
             current = emotion.__getattribute__(key)
 
             update = current + value
-            if update > 9.99:
-                update = 9.99
-
-            elif update < -9.99:
-                update = -9.99
 
             emotion.__setattr__(key, update)
         emotion.save()
