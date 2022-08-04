@@ -55,3 +55,14 @@ class Word(models.Model):
     entity = models.CharField(max_length=10, null=True, blank=True)
     polarity = models.FloatField(null=True)
     length = models.IntegerField()
+
+    def save(self, *args, **kwargs):
+        self.length = len(self.token)
+        super(Word, self).save(*args, **kwargs)
+
+
+class Meaning(models.Model):
+    """ Defines the meaning of a word in a given context """
+    meaning = models.TextField(null=False, blank=False)
+    context = models.CharField(max_length=50, null=False, blank=False)
+    word = models.ForeignKey(Word, on_delete=models.CASCADE)

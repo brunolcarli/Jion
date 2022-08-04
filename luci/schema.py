@@ -2,8 +2,13 @@ import logging
 from base64 import b64decode
 import graphene
 from django.conf import settings
-from luci.models import Emotion, Quote, User, Message, CustomConfig, Word
+from luci.models import Emotion, Quote, User, Message, CustomConfig, Word, Meaning
 from luci.util import CompressedString
+
+
+class MeaningType(graphene.ObjectType):
+    context = graphene.String()
+    meaning = graphene.String()
 
 
 class WordType(graphene.ObjectType):
@@ -14,7 +19,10 @@ class WordType(graphene.ObjectType):
     entity = graphene.String()
     polarity = graphene.Float()
     length = graphene.Int()
+    meanings = graphene.List(MeaningType)
 
+    def resolve_meanings(self, info, **kwargs):
+        return self.meaning_set.all()
 
 class CustomConfigType(graphene.ObjectType):
     reference = graphene.String()
@@ -369,9 +377,32 @@ class UpdateCustomConfig(graphene.relay.ClientIDMutation):
         return UpdateCustomConfig(custom_config)
 
 
+class AddMeaning(graphene.relay.ClientIDMutation):
+    """ Set a meaning to a given word """
+    word = graphene.Field(WordType)
+
+    class Input:
+        word = graphene.String(required=True)
+        context = graphene.String(required=True)
+        meaning = graphene.String(required=True)
+
+    def mutate_and_get_payload(self, info, **kwargs):
+        word, _ = Word.objects.get_or_create(token=kwargs['word'])
+        meaning = Meaning.objects.create(
+            context=kwargs['context'],
+            meaning=kwargs['meaning'],
+            word=word
+        )
+        meaning.save()
+        word.save()
+
+        return AddMeaning(word)
+
+
 class Mutation:
     emotion_update = EmotionUpdate.Field()
     create_quote = CreateQuote.Field()
     update_user = UpdateUser.Field()
     assign_response = AssignResponse.Field()
     update_custom_config = UpdateCustomConfig.Field()
+    add_meaning = AddMeaning.Field()
