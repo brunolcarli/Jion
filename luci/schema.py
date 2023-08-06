@@ -41,7 +41,7 @@ class MessageType(graphene.ObjectType):
         return self.user.name if self.user else None
 
     def resolve_possible_responses(self, info, **kwargs):
-        return self.possible_responses.all()
+        return self.possible_responses.all().exclude(text__startswith='!').exclude(text__startswith='http').exclude(text__startswith=';;')
 
 
 class UserType(graphene.ObjectType):
@@ -162,20 +162,26 @@ class Query:
         user__name=graphene.String(),
         reference=graphene.String(),
         text__startswith=graphene.String(),
-        text__not_startswith=graphene.String(),
-        text__not_contains= graphene.String(),
+        text__not_startswith=graphene.List(graphene.String),
+        text__not_contains= graphene.List(graphene.String),
     )
 
     def resolve_messages(self, info, **kwargs):
-        startswith_exclude = {}
+        startswith_exclude = []
         if kwargs.get('text__not_startswith') is not None:
-            startswith_exclude['text__istartswith'] = kwargs.pop('text__not_startswith')
+            startswith_exclude = kwargs.pop('text__not_startswith')
 
-        contains_exclude = {}
+        contains_exclude = []
         if kwargs.get('text__not_contains') is not None:
-            contains_exclude['text__icontains'] = kwargs.pop('text__not_contains')
+            contains_exclude = kwargs.pop('text__not_contains')
 
-        return Message.objects.filter(**kwargs).exclude(**startswith_exclude).exclude(**contains_exclude)
+        messages = Message.objects.filter(**kwargs)
+        for constraint in startswith_exclude:
+            messages = messages.exclude(text__istartswith=constraint)
+
+        for constraint in contains_exclude:
+            messages = messages.exclude(text__icontains=constraint)
+        return messages
 
     custom_config = graphene.Field(
         CustomConfigType,
