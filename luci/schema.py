@@ -160,15 +160,26 @@ class Query:
         global_intention=graphene.String(),
         specific_intention=graphene.String(),
         user__name=graphene.String(),
-        reference=graphene.String()
+        reference=graphene.String(),
+        text__startswith=graphene.String(),
+        text__not_startswith=graphene.String(),
+        text__not_contains= graphene.String(),
     )
 
     def resolve_messages(self, info, **kwargs):
-        return Message.objects.filter(**kwargs)
+        startswith_exclude = {}
+        if kwargs.get('text__not_startswith') is not None:
+            startswith_exclude['text__istartswith'] = kwargs.pop('text__not_startswith')
+
+        contains_exclude = {}
+        if kwargs.get('text__not_contains') is not None:
+            contains_exclude['text__icontains'] = kwargs.pop('text__not_contains')
+
+        return Message.objects.filter(**kwargs).exclude(**startswith_exclude).exclude(**contains_exclude)
 
     custom_config = graphene.Field(
         CustomConfigType,
-        reference=graphene.String(required=True)
+        reference=graphene.String(required=True)   
     )
 
     def resolve_custom_config(self, info, **kwargs):
