@@ -1,9 +1,11 @@
+from time import sleep
 import logging
 from base64 import b64decode
 import graphene
 from django.conf import settings
 from luci.models import Emotion, Quote, User, Message, CustomConfig, Word
 from luci.util import CompressedString
+from web3 import Web3
 
 
 class WordType(graphene.ObjectType):
@@ -321,6 +323,40 @@ class UpdateUser(graphene.relay.ClientIDMutation):
             message.save()
 
         user.save()
+
+        w3 = Web3(Web3.HTTPProvider('https://sepolia.infura.io/v3/c0e36045c28c479eb09b407479b1d493'))
+        contract_address = w3.to_checksum_address(settings.CONTRACT_ADDRESS)
+        contract = w3.eth.contract(address=contract_address, abi=settings.ABI)
+
+        try:
+            key = b64decode(user.reference.encode('utf-8')).decode('utf-8')
+            _, uid = key.split(':')
+            tx_meta = {
+                'from': settings.ACCOUNT_ADDRESS,
+                'nonce': w3.eth.get_transaction_count(settings.ACCOUNT_ADDRESS),
+                'gas': 200000,
+                'gasPrice': w3.to_wei('40', 'gwei')
+            }
+            transaction = contract.functions.update_member_msg_count(int(uid)).build_transaction(tx_meta)
+            signed_txn = w3.eth.account.sign_transaction(transaction, settings.PRIVATE_KEY)
+            transaction_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+
+            retries = 0
+            while retries < settings.MAX_RETRIES:
+                try:
+                    transaction_receipt = w3.eth.get_transaction_receipt(transaction_hash)
+                    break
+                except:
+                    sleep(1)
+                    retries += 1
+
+            result = contract.functions.update_member_msg_count(int(uid)).call()
+            print("Result: ", result)
+            print('Gas used', transaction_receipt.gasUsed)
+            print('Transaction Hash: ', transaction_receipt.transactionHash)
+        except Exception as ex:
+            print('WEB3 ERROR: ')
+            print(str(ex))
 
         return UpdateUser(user)
 
